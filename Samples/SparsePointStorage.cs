@@ -7,34 +7,35 @@ namespace Samples
 
     public class SlaveStorage : ISlaveDataStore
     {
-        private readonly SparsePointSource<bool> _coilDiscretes;
-        private readonly SparsePointSource<bool> _coilInputs;
+        private readonly SparsePointSource<bool> _coils;
+        private readonly SparsePointSource<bool> _coilDiscreteInputs;
         private readonly SparsePointSource<ushort> _holdingRegisters;
         private readonly SparsePointSource<ushort> _inputRegisters;
 
         public SlaveStorage()
         {
-            _coilDiscretes = new SparsePointSource<bool>();
-            _coilInputs = new SparsePointSource<bool>();
+            _coils = new SparsePointSource<bool>();
+            _coilDiscreteInputs = new SparsePointSource<bool>();
             _holdingRegisters = new SparsePointSource<ushort>();
             _inputRegisters = new SparsePointSource<ushort>();
         }
 
-        public SparsePointSource<bool> CoilDiscretes
+        //bit Read/Write
+        public SparsePointSource<bool> Coils
         {
-            get { return _coilDiscretes; }
+            get { return _coils; }
         }
-
-        public SparsePointSource<bool> CoilInputs
+        //bit Read only
+        public SparsePointSource<bool> CoilDiscreteInputs
         {
-            get { return _coilInputs; }
+            get { return _coilDiscreteInputs; }
         }
-
+        //word Read/Write
         public SparsePointSource<ushort> HoldingRegisters
         {
             get { return _holdingRegisters; }
         }
-
+        //word Read only
         public SparsePointSource<ushort> InputRegisters
         {
             get { return _inputRegisters; }
@@ -42,12 +43,12 @@ namespace Samples
 
         IPointSource<bool> ISlaveDataStore.CoilDiscretes
         {
-            get { return _coilDiscretes; }
+            get { return _coils; }
         }
 
         IPointSource<bool> ISlaveDataStore.CoilInputs
         {
-            get { return _coilInputs; }
+            get { return _coilDiscreteInputs; }
         }
 
         IPointSource<ushort> ISlaveDataStore.HoldingRegisters
