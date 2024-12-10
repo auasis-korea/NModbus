@@ -20,7 +20,7 @@ namespace Samples
     /// </summary>
     public class Driver
     {
-        private const string PrimarySerialPortName = "COM4";
+        private const string PrimarySerialPortName = "COM2";
         private const string SecondarySerialPortName = "COM2";
 
         private static async Task<int> Main(string[] args)
@@ -28,7 +28,7 @@ namespace Samples
             var cts = new CancellationTokenSource();
 
             Console.CancelKeyPress += (sender, eventArgs) => cts.Cancel();
-
+            
             try
             {
                 //ModbusSocketSerialMasterReadRegisters();
@@ -40,13 +40,14 @@ namespace Samples
 				        //ModbusSerialRtuMasterWriteRegisters();
 				        //ModbusSerialAsciiMasterReadRegisters();
 				        //ModbusTcpMasterReadInputs();
-								ModbusTcpMasterReadHoldingRegisters32();
+						//ModbusTcpMasterReadHoldingRegisters32();
                 //StartModbusAsciiSlave();
                 //ModbusTcpMasterReadInputsFromModbusSlave();
                 //ModbusSerialAsciiMasterReadRegistersFromModbusSlave();
                 //StartModbusTcpSlave();
                 //StartModbusUdpSlave();
                 //StartModbusAsciiSlave();
+                await StartModbusAsciiSlave(cts.Token);
                 //await StartModbusSerialRtuSlaveNetwork(cts.Token);
                 //await StartModbusSerialRtuSlaveWithCustomMessage(cts.Token);
             }
@@ -451,18 +452,19 @@ namespace Samples
             }
         }
 
-        public static async Task StartModbusSerialRtuSlaveNetwork(CancellationToken cancellationToken)
+        public static async Task StartModbusAsciiSlave(CancellationToken cancellationToken)
         {
             using (SerialPort slavePort = new SerialPort(PrimarySerialPortName))
             {
                 // configure serial port
-                slavePort.BaudRate = 57600;
+                slavePort.BaudRate = 115200;
                 slavePort.DataBits = 8;
-                slavePort.Parity = Parity.Even;
+                slavePort.Parity = Parity.None;
                 slavePort.StopBits = StopBits.One;
                 slavePort.Open();
 
-                IModbusFactory factory = new ModbusFactory();
+                var modbusLogger = new ConsoleModbusLogger(LoggingLevel.Debug);
+                IModbusFactory factory = new ModbusFactory(logger: modbusLogger);
                 IModbusSlaveNetwork modbusSlaveNetwork = factory.CreateRtuSlaveNetwork(slavePort);
 
                 slavePort.ReadTimeout = 50;
@@ -478,21 +480,117 @@ namespace Samples
                 var casHmiDataStore = new SlaveStorage();
 
                 casHmiDataStore.InputRegisters.StorageOperationOccurred += (sender, args) => Console.WriteLine($"CASHMI Input registers: {args.Operation} starting at {args.StartingAddress}");
-                casHmiDataStore.HoldingRegisters.StorageOperationOccurred += (sender, args) => Console.WriteLine($"CASHMI Holding registers: {args.Operation} starting at {args.StartingAddress}");
+                casHmiDataStore.HoldingRegisters.StorageOperationOccurred += (sender, args) =>
+                {
+                    Console.WriteLine($"CASHMI Holding registers: {args.Operation} starting at {args.StartingAddress}");
+                };
 
                 var danfossStore = new SlaveStorage();
+                danfossStore.HoldingRegisters[0] = 1;
+                danfossStore.HoldingRegisters[1] = 2;
+                danfossStore.HoldingRegisters[2] = 3;
+                danfossStore.HoldingRegisters[3] = 4;
+                danfossStore.HoldingRegisters[4] = 5;
+                danfossStore.HoldingRegisters[5] = 6;
+                danfossStore.HoldingRegisters[6] = 7;
+                danfossStore.HoldingRegisters[7] = 8;
+                danfossStore.HoldingRegisters[8] = 9;
+                danfossStore.HoldingRegisters[9] = 10;
 
                 danfossStore.InputRegisters.StorageOperationOccurred += (sender, args) => Console.WriteLine($"DANFOSS Input registers: {args.Operation} starting at {args.StartingAddress}");
-                danfossStore.HoldingRegisters.StorageOperationOccurred += (sender, args) => Console.WriteLine($"DANFOSS Holding registers: {args.Operation} starting at {args.StartingAddress}");
+                danfossStore.HoldingRegisters.StorageOperationOccurred += (sender, args) =>
+                {
+                    Console.WriteLine($"DANFOSS Holding registers: {args.Operation} starting at {args.StartingAddress}");
+                    string str = "";
+                    for (int i = 0; i < args.Points.Length; i++)
+                    {
+                        str += args.Points[i].ToString();
+                    }
+                    Console.WriteLine($"DANFOSS Holding registers : {str}");
+                };
 
                 IModbusSlave slave1 = factory.CreateSlave(21, acTechDataStore);
                 IModbusSlave slave2 = factory.CreateSlave(55, casHmiDataStore);
 
                 IModbusSlave slave3 = factory.CreateSlave(1, danfossStore);
 
-                modbusSlaveNetwork.AddSlave(slave1);
+                //modbusSlaveNetwork.AddSlave(slave1);
                 //modbusSlaveNetwork.AddSlave(slave2);
-                modbusSlaveNetwork.AddSlave(slave2);
+                //modbusSlaveNetwork.AddSlave(slave2);
+                modbusSlaveNetwork.AddSlave(slave3);
+
+                await modbusSlaveNetwork.ListenAsync(cancellationToken);
+
+                await Task.Delay(1, cancellationToken);
+            }
+        }
+
+
+        public static async Task StartModbusSerialRtuSlaveNetwork(CancellationToken cancellationToken)
+        {
+            using (SerialPort slavePort = new SerialPort(PrimarySerialPortName))
+            {
+                // configure serial port
+                slavePort.BaudRate = 115200;
+                slavePort.DataBits = 8;
+                slavePort.Parity = Parity.None;
+                slavePort.StopBits = StopBits.One;
+                slavePort.Open();
+
+                var modbusLogger = new ConsoleModbusLogger(LoggingLevel.Debug);
+                IModbusFactory factory = new ModbusFactory(logger:modbusLogger);
+                IModbusSlaveNetwork modbusSlaveNetwork = factory.CreateRtuSlaveNetwork(slavePort);
+
+                slavePort.ReadTimeout = 50;
+                slavePort.WriteTimeout = 500;
+
+                var acTechDataStore = new SlaveStorage();
+
+                //acTechDataStore.CoilDiscretes.StorageOperationOccurred += (sender, args) => Console.WriteLine($"Coil discretes: {args.Operation} starting at {args.StartingAddress}");
+                //acTechDataStore.CoilInputs.StorageOperationOccurred += (sender, args) => Console.WriteLine($"Coil  inputs: {args.Operation} starting at {args.StartingAddress}");
+                acTechDataStore.InputRegisters.StorageOperationOccurred += (sender, args) => Console.WriteLine($"ACTECH Input registers: {args.Operation} starting at {args.StartingAddress}");
+                acTechDataStore.HoldingRegisters.StorageOperationOccurred += (sender, args) => Console.WriteLine($"ACTECH Holding registers: {args.Operation} starting at {args.StartingAddress}");
+
+                var casHmiDataStore = new SlaveStorage();
+
+                casHmiDataStore.InputRegisters.StorageOperationOccurred += (sender, args) => Console.WriteLine($"CASHMI Input registers: {args.Operation} starting at {args.StartingAddress}");
+                casHmiDataStore.HoldingRegisters.StorageOperationOccurred += (sender, args) =>
+                {
+                    Console.WriteLine($"CASHMI Holding registers: {args.Operation} starting at {args.StartingAddress}");
+                };
+
+                var danfossStore = new SlaveStorage();
+                danfossStore.HoldingRegisters[0] = 1;
+                danfossStore.HoldingRegisters[1] = 2;
+                danfossStore.HoldingRegisters[2] = 3;
+                danfossStore.HoldingRegisters[3] = 4;
+                danfossStore.HoldingRegisters[4] = 5;
+                danfossStore.HoldingRegisters[5] = 6;
+                danfossStore.HoldingRegisters[6] = 7;
+                danfossStore.HoldingRegisters[7] = 8;
+                danfossStore.HoldingRegisters[8] = 9;
+                danfossStore.HoldingRegisters[9] = 10;
+
+                danfossStore.InputRegisters.StorageOperationOccurred += (sender, args) => Console.WriteLine($"DANFOSS Input registers: {args.Operation} starting at {args.StartingAddress}");
+                danfossStore.HoldingRegisters.StorageOperationOccurred += (sender, args) =>
+                {
+                    Console.WriteLine($"DANFOSS Holding registers: {args.Operation} starting at {args.StartingAddress}");
+                    string str = "";
+                    for ( int i = 0; i < args.Points.Length; i++)
+                    {
+                        str += args.Points[i].ToString();
+                    }
+                    Console.WriteLine($"DANFOSS Holding registers : {str}");
+                };
+
+                IModbusSlave slave1 = factory.CreateSlave(21, acTechDataStore);
+                IModbusSlave slave2 = factory.CreateSlave(55, casHmiDataStore);
+
+                IModbusSlave slave3 = factory.CreateSlave(1, danfossStore);
+
+                //modbusSlaveNetwork.AddSlave(slave1);
+                //modbusSlaveNetwork.AddSlave(slave2);
+                //modbusSlaveNetwork.AddSlave(slave2);
                 modbusSlaveNetwork.AddSlave(slave3);
 
                 await modbusSlaveNetwork.ListenAsync(cancellationToken);
@@ -517,8 +615,8 @@ namespace Samples
 
                 var dataStore = new SlaveStorage();
 
-                dataStore.CoilDiscretes.StorageOperationOccurred += (sender, args) => Console.WriteLine($"Coil discretes: {args.Operation} starting at {args.StartingAddress}");
-                dataStore.CoilInputs.StorageOperationOccurred += (sender, args) => Console.WriteLine($"Coil inputs: {args.Operation} starting at {args.StartingAddress}");
+                dataStore.Coils.StorageOperationOccurred += (sender, args) => Console.WriteLine($"Coil discretes: {args.Operation} starting at {args.StartingAddress}");
+                dataStore.CoilDiscreteInputs.StorageOperationOccurred += (sender, args) => Console.WriteLine($"Coil inputs: {args.Operation} starting at {args.StartingAddress}");
                 dataStore.InputRegisters.StorageOperationOccurred += (sender, args) => Console.WriteLine($"Input registers: {args.Operation} starting at {args.StartingAddress}");
                 dataStore.HoldingRegisters.StorageOperationOccurred += (sender, args) => Console.WriteLine($"Holding registers: {args.Operation} starting at {args.StartingAddress}");
 

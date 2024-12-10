@@ -87,13 +87,13 @@ namespace NModbus.Logging
 
         private static void LogFrame(this IModbusLogger logger, string validPrefix, string invalidPrefix, byte[] frame)
         {
-            if (logger.ShouldLog(LoggingLevel.Trace))
+            if (logger.ShouldLog(LoggingLevel.Debug))
             {
-                if (logger.ShouldLog(LoggingLevel.Trace))
+                if (logger.ShouldLog(LoggingLevel.Debug))
                 {
                     string prefix = frame.DoesCrcMatch() ? validPrefix : invalidPrefix;
 
-                    logger.Trace($"{prefix}: {string.Join(" ", frame.Select(b => b.ToString("X2")))}");
+                    logger.Debug($"{prefix}: {string.Join(" ", frame.Select(b => b.ToString("X2")))}");
                 }
             }
         }
