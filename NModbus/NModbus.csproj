@@ -16,6 +16,8 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
 		<Configurations>Debug;Release;Remote</Configurations>
+		<Platforms>AnyCPU;x86</Platforms>
+		<BaseOutputPath></BaseOutputPath>
 	</PropertyGroup>
 
 	<ItemGroup>
