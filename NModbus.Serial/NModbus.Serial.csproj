@@ -14,6 +14,8 @@
 		<NoWarn>1701;1702;1705;1591</NoWarn>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<Configurations>Debug;Release;Remote</Configurations>
+		<Platforms>AnyCPU;x86</Platforms>
+		<BaseOutputPath></BaseOutputPath>
 	</PropertyGroup>
 
     <ItemGroup>
